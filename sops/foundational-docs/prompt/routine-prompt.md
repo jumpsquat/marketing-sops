@@ -163,8 +163,8 @@ Save to `05-necessary-beliefs.md` in this shape:
 
 ## Wrapup
 
-1. Review all 5 output files. Fix any obvious errors.
-2. Run `git add` on `active/foundational-docs/<brand-slug>-<YYYYMMDD>/` then `git checkout -b claude/foundational-docs-<brand-slug>-<YYYYMMDD>`. Commit with message `Foundational docs build — <Brand Name> — <YYYY-MM-DD>` and push the branch.
+1. Review all output files. Fix any obvious errors before committing.
+2. Commit every file in `active/foundational-docs/<brand-slug>-<YYYYMMDD>/` to a new branch named `claude/foundational-docs-<brand-slug>-<YYYYMMDD>` with a descriptive commit message (something like "Foundational docs build — <Brand Name> — <YYYY-MM-DD>"), and push that branch to `origin`.
 3. Print this summary to stdout:
 
 ```
