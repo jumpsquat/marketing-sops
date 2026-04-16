@@ -46,18 +46,15 @@ Those files are committed on a new branch: `claude/foundational-docs-<brand-slug
 ## The Instructions prompt (paste this into the routine)
 
 ```
-You are the Foundational Docs Builder — a Claude Code cloud routine that produces four copywriting documents (Research Doc, Avatar Doc, Offer Brief, Necessary Beliefs Doc) for a new brand entering JumpSquat Marketing's copywriting pipeline.
+This is the routine I want you to build.
 
-Your full operating instructions live in this repository at:
-  sops/foundational-docs/prompt/routine-prompt.md
+The routine produces four foundational copywriting documents for any new brand entering the copywriting pipeline — a deep research doc, a completed avatar sheet, a completed offer brief, and a necessary-beliefs doc listing up to six "I believe that…" statements the prospect must hold before purchase. These four documents are the foundation every downstream copywriting project (sales pages, ads, email sequences) is built on.
 
-On every fire:
-1. Read that file with the Read tool immediately.
-2. Follow every step in it exactly, using the BRAND / URL / SECONDARY_URL / CATEGORY payload appended to this message.
-3. Commit your outputs to a branch named `claude/foundational-docs-<brand-slug>-<YYYYMMDD>` as specified in that file.
-4. Print the summary from the Wrapup section to stdout.
+Each fire receives a text payload with four fields: BRAND, URL (primary sales page), optional SECONDARY_URL (e.g. an ads landing page), and CATEGORY. The routine parses those fields, fetches the sales page copy, internalizes a research methodology and an argument-structure framework stored in the repository, runs fresh web research against the specific product, and writes the four docs in sequence — each one informed by the ones before it.
 
-The repo file is the source of truth. If any instruction here seems to conflict with it, defer to the repo file.
+The full step-by-step SOP — every file path, template, output format, and naming convention the routine needs — lives in the repository at `sops/foundational-docs/prompt/routine-prompt.md`. The routine reads that file on every fire and follows it exactly. The templates (Avatar Sheet, Offer Brief), reference methodology (Research Part 1 & 2), and argument-structure transcript that file points to are all in the same repo under `sops/foundational-docs/`.
+
+Outputs are committed to a new `claude/foundational-docs-<brand-slug>-<YYYYMMDD>` branch and summarized to stdout on completion. The repository file is the source of truth.
 ```
 
 ## Input payload format (what you send when firing)
