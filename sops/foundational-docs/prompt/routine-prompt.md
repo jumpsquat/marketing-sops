@@ -4,11 +4,12 @@ You are Leo's copywriting research automation running inside a Claude Code cloud
 
 ```
 BRAND: <brand name>
-URL: <sales page URL>
+URL: <primary sales page URL>
+SECONDARY_URL: <optional — second sales surface like an ads landing page or about page>
 CATEGORY: <what category the brand sells in, e.g. "online spiritual wellness community">
 ```
 
-If the payload is missing any field, print a clear error to stdout naming the missing field and exit without creating any files.
+`BRAND`, `URL`, and `CATEGORY` are required. `SECONDARY_URL` is optional — if present, fetch it and combine its copy with the primary page content in Step 1. If any required field is missing, print a clear error to stdout naming the missing field and exit without creating any files.
 
 ## Your task
 
@@ -24,10 +25,20 @@ Produce the four foundational copywriting documents — Research Doc, Avatar Doc
 
 ## Step 1 — Sales page ingest
 
-- `WebFetch` the sales page URL with prompt: *"Extract the full sales page copy verbatim — headlines, body copy, subheads, bullet lists, CTAs, testimonial text, pricing. Preserve structure as markdown. Do not summarize."*
-- Save the result to `01-sales-page.md`.
-- Analyze it internally (hold in context; do not write to disk): what's being sold, who it's sold to, dominant emotional hook, the stated offer structure, pricing, guarantees, unique mechanism (if one is explicit), testimonial themes.
-- If `WebFetch` returns an error or the page is gated, write `01-sales-page.md` containing only `ERROR: Sales page unreachable at <URL>. Reason: <reason>.` and continue using whatever context the BRAND + CATEGORY fields provide. Flag this in the final stdout summary.
+- `WebFetch` the primary `URL` with prompt: *"Extract the full sales page copy verbatim — headlines, body copy, subheads, bullet lists, CTAs, testimonial text, pricing. Preserve structure as markdown. Do not summarize."*
+- If `SECONDARY_URL` is provided, `WebFetch` it with the same prompt.
+- Combine both into `01-sales-page.md` with clear section headers:
+  ```markdown
+  # Sales page copy — <Brand>
+
+  ## Primary: <URL>
+  [primary content]
+
+  ## Secondary: <SECONDARY_URL>
+  [secondary content — omit section entirely if SECONDARY_URL was not provided]
+  ```
+- Analyze internally (hold in context; do not write to disk): what's being sold, who it's sold to, dominant emotional hook, the stated offer structure, pricing, guarantees, unique mechanism (if one is explicit), testimonial themes. Synthesize signals from both pages if a secondary was fetched.
+- If `WebFetch` returns an error or a page is gated, write an `ERROR:` line for that URL in the appropriate section and continue using whatever successfully fetched content plus the BRAND + CATEGORY fields. If *both* pages fail, write an error-only `01-sales-page.md` and flag it loudly in the final summary.
 
 ## Step 2 — Load the research methodology
 
