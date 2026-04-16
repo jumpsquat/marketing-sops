@@ -7,9 +7,10 @@ BRAND: <brand name>
 URL: <primary sales page URL>
 SECONDARY_URL: <optional — second sales surface like an ads landing page or about page>
 CATEGORY: <what category the brand sells in, e.g. "online spiritual wellness community">
+SALES_COPY: <optional — raw pasted sales page text, used as fallback when URLs are gated/403>
 ```
 
-`BRAND`, `URL`, and `CATEGORY` are required. `SECONDARY_URL` is optional — if present, fetch it and combine its copy with the primary page content in Step 1. If any required field is missing, print a clear error to stdout naming the missing field and exit without creating any files.
+`BRAND`, `URL`, and `CATEGORY` are required. `SECONDARY_URL` and `SALES_COPY` are optional. `SALES_COPY` is a fallback for brands whose sales pages block server-side fetches — if provided, use it in Step 1 as ground truth. If any required field is missing, print a clear error to stdout naming the missing field and exit without creating any files.
 
 ## Your task
 
@@ -25,20 +26,33 @@ Produce the four foundational copywriting documents — Research Doc, Avatar Doc
 
 ## Step 1 — Sales page ingest
 
+**If `SALES_COPY` was provided in the payload**, use it as the primary content and skip URL fetching. Write directly to `01-sales-page.md`:
+
+```markdown
+# Sales page copy — <Brand>
+
+## Source: SALES_COPY (pasted by operator)
+[contents of SALES_COPY]
+```
+
+**Otherwise**:
+
 - `WebFetch` the primary `URL` with prompt: *"Extract the full sales page copy verbatim — headlines, body copy, subheads, bullet lists, CTAs, testimonial text, pricing. Preserve structure as markdown. Do not summarize."*
 - If `SECONDARY_URL` is provided, `WebFetch` it with the same prompt.
-- Combine both into `01-sales-page.md` with clear section headers:
+- **If either WebFetch returns 403 / blocked / gated errors**, retry via the Wayback Machine: `https://web.archive.org/web/2y/<original-url>` (literally prefix with `web.archive.org/web/2y/`). Archive.org usually serves a cached copy without bot detection.
+- Combine successful fetches into `01-sales-page.md` with clear section headers:
   ```markdown
   # Sales page copy — <Brand>
 
   ## Primary: <URL>
-  [primary content]
+  [primary content, or `ERROR: <reason>` if all fetch attempts including Wayback failed]
 
   ## Secondary: <SECONDARY_URL>
   [secondary content — omit section entirely if SECONDARY_URL was not provided]
   ```
-- Analyze internally (hold in context; do not write to disk): what's being sold, who it's sold to, dominant emotional hook, the stated offer structure, pricing, guarantees, unique mechanism (if one is explicit), testimonial themes. Synthesize signals from both pages if a secondary was fetched.
-- If `WebFetch` returns an error or a page is gated, write an `ERROR:` line for that URL in the appropriate section and continue using whatever successfully fetched content plus the BRAND + CATEGORY fields. If *both* pages fail, write an error-only `01-sales-page.md` and flag it loudly in the final summary.
+- If *all* fetch attempts fail across both URLs, write an error-only `01-sales-page.md`, flag it loudly in the final summary, and continue with Step 2 using BRAND + CATEGORY as your only ground truth. **Do not over-compensate by running extra research queries in Step 3.** Stay within normal Step 3 scope.
+
+Analyze internally (hold in context; do not write to disk): what's being sold, who it's sold to, dominant emotional hook, the stated offer structure, pricing, guarantees, unique mechanism (if one is explicit), testimonial themes.
 
 ## Step 2 — Load the research methodology
 
@@ -47,28 +61,25 @@ Produce the four foundational copywriting documents — Research Doc, Avatar Doc
 - Internalize the framework — why research matters, how to structure it, what categories of insight to look for (market, customer, competitors, pains, desires, vocabulary, beliefs, objections).
 - Do not write anything to disk in this step.
 
-## Step 3 — Deep research (execute directly)
+## Step 3 — Deep research (execute incrementally)
 
-This is the single biggest step. You are replacing what the original manual SOP offloaded to OpenAI's Deep Research tool. Execute it yourself using `WebSearch` + `WebFetch`.
+Replace what the original manual SOP offloaded to OpenAI's Deep Research tool. Execute it yourself using `WebSearch` + `WebFetch`.
 
-**Research scope** — produce a minimum 6-page research doc covering:
-- The prospect (demographics, psychographics, daily life, identity markers)
-- Primary pains (functional, emotional, social, somatic, financial)
-- Dream outcomes and secret desires
-- Current solutions they've tried and why those failed
-- Active vocabulary — how they describe their problem in their own words
-- Existing beliefs about the category (what they already hold true, what they doubt)
-- Key objections to products in this category
-- Competitor landscape — top 5 alternatives, positioning differences, weaknesses
-- Cultural context, tribal signals, content they consume, authorities they trust
+**Critical: write the doc incrementally, section by section. Do not run all searches first and synthesize everything at the end — that causes stream timeouts.**
 
-**Process**:
-1. Formulate at least 10 distinct `WebSearch` queries spanning the dimensions above. Write each query to be specific to the BRAND + CATEGORY + inferred prospect. Do NOT search for the brand name alone — search for the prospect's pain/desire vocabulary.
-2. Follow the 2–3 most promising results per query with `WebFetch` for full content.
-3. Also search Reddit, YouTube comments, and review sites specifically (append `site:reddit.com`, `site:youtube.com`, `site:trustpilot.com` etc.) for verbatim prospect language.
-4. Synthesize findings into a structured markdown doc.
+### How to proceed
 
-**Output format** — save to `02-research-doc.md` with these sections:
+1. Create `02-research-doc.md` first with the header block and empty section stubs (the template below).
+2. For each section, in order:
+   a. Formulate 1–2 targeted `WebSearch` queries using the prospect's own pain/desire vocabulary (not the brand name). Append `site:reddit.com`, `site:youtube.com`, or `site:trustpilot.com` when the section needs verbatim language.
+   b. Follow at most 1 high-value result per query with `WebFetch` if the search snippet isn't enough.
+   c. Use the `Edit` tool to fill that section in `02-research-doc.md`.
+   d. Move to the next section.
+3. If a section's research comes up thin after 2 queries, note the gap briefly in the section and move on. Do not keep searching.
+
+Budget guidance: aim for ~5–7 total `WebSearch` calls and ~3–5 total `WebFetch` calls across the whole step. Target doc length 1,500–2,000 words (each section 150–350 words).
+
+### Output format — `02-research-doc.md`
 
 ```markdown
 # Research Doc — <Brand Name>
@@ -78,41 +89,28 @@ Product category: <CATEGORY>
 Sales page analyzed: <URL>
 
 ## 1. The Prospect
-[Demographics, psychographics, identity, daily reality]
+[demographics, psychographics, identity, daily reality — 200–300 words]
 
 ## 2. Primary Pains
-### Functional pains
-### Emotional pains
-### Social pains
-### Somatic pains (if relevant)
-### Financial pains (if relevant)
+[3–5 key pains across functional/emotional/social dimensions, with verbatim phrases — 250–400 words]
 
-## 3. Dream Outcomes & Secret Desires
-[What they're privately hoping for]
+## 3. Dream Outcomes & Current Solutions
+[what they want; what they've tried and why those failed — 200–300 words]
 
-## 4. Current Solutions Tried & Why They Failed
-[What's been tried, what went wrong, the disillusionment pattern]
+## 4. Prospect Vocabulary
+[10–15 verbatim phrases from Reddit/YouTube/reviews, each with a source URL]
 
-## 5. Prospect Vocabulary
-[Verbatim phrases from Reddit/YouTube/reviews — at least 20 with source citations]
+## 5. Beliefs & Objections
+[existing beliefs about the category + what stops them buying — 200–300 words]
 
-## 6. Existing Beliefs About the Category
-[What the prospect already thinks is true — level of awareness, level of sophistication]
+## 6. Competitor Landscape
+[top 3–5 alternatives, their positioning, their gaps — 200–300 words]
 
-## 7. Key Objections
-[What stops purchase — price, time, skepticism, identity, fear]
-
-## 8. Competitor Landscape
-[Top 5 alternatives, their positioning, their gaps]
-
-## 9. Cultural Context
-[Tribal signals, content consumed, authorities trusted, counter-signals]
-
-## 10. Research Sources
-[Bulleted list of every URL used, with 1-line relevance note]
+## 7. Sources
+[bulleted list of every URL referenced with a 1-line relevance note]
 ```
 
-Target length: 2,500+ words minimum. If the research feels thin in any section, run more queries until it isn't.
+Do not exceed 2,000 words. Stop when each section is adequately covered.
 
 ## Step 4 — Fill the Avatar Sheet
 

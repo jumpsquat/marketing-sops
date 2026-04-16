@@ -64,17 +64,27 @@ BRAND: <brand name>
 URL: <primary sales page URL>
 SECONDARY_URL: <optional — second sales surface, e.g. ads landing page>
 CATEGORY: <what the brand sells, in one short phrase>
+SALES_COPY: <optional — raw pasted sales page text, used as fallback when URLs are gated/403>
 ```
 
-`SECONDARY_URL` is optional. Everything else is required.
+`BRAND`, `URL`, and `CATEGORY` are required. `SECONDARY_URL` and `SALES_COPY` are optional.
+
+### About `SALES_COPY` (the 403 fallback)
+
+Some sales pages block server-side fetches (bot detection, geo-gating, login walls). The routine will retry via the Wayback Machine automatically, but if that also fails the routine starves for input. For those cases, open the sales page in your browser, select-all + copy, and paste it into the `SALES_COPY` field. The routine uses `SALES_COPY` as ground truth and skips URL fetching.
+
+Quick test for whether you need it: `curl -I -L "<your-URL>"` — if it returns `403`, add `SALES_COPY` next time.
 
 ### First test (Eternal Life Tribe)
+
+Both ELT URLs returned 403 on the first fire. Paste the actual sales copy in `SALES_COPY` for the retry:
 
 ```
 BRAND: Eternal Life Tribe
 URL: https://masterclass.samuelbleemd.com/fb_completed
 SECONDARY_URL: https://www.skool.com/eternallifetribe/about
 CATEGORY: online holistic health / spiritual wellness community led by a medical doctor
+SALES_COPY: [paste the full sales copy from masterclass.samuelbleemd.com/fb_completed here — open it in your browser, select-all, copy, paste]
 ```
 
 ## Iterating on the routine
